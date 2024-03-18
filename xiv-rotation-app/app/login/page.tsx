@@ -8,6 +8,11 @@ export default function Login({
 }: {
   searchParams: { message: string };
 }) {
+  /**
+   * check sign in 
+   * @param {FormData} formData 
+   * @returns
+   */
   const signIn = async (formData: FormData) => {
     "use server";
 
@@ -27,14 +32,20 @@ export default function Login({
     return redirect("/");
   };
 
+  /**
+   * check sign up
+   * @param {FormData} formData 
+   * @returns 
+   */
   const signUp = async (formData: FormData) => {
     "use server";
-
+  
     const origin = headers().get("origin");
+    const name = formData.get("")
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const supabase = createClient();
-
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -96,12 +107,12 @@ export default function Login({
           placeholder="••••••••"
           required
         />
-        <button className="bg-green-700 rounded-md px-4 py-2 text-foreground mb-2">
+        <button className="bg-green-700 rounded-md px-4 py-2 text-foreground mb-2 hover:bg-white hover:text-green-700 active:scale-95">
           Sign In
         </button>
         <button
           formAction={signUp}
-          className="border border-foreground/20 rounded-md px-4 py-2 text-foreground mb-2"
+          className="border border-foreground/20 rounded-md px-4 py-2 text-foreground mb-2 hover:bg-gray-700 active:scale-95"
         >
           Sign Up
         </button>
