@@ -1,5 +1,6 @@
+'use client';
 import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/utils/supabase/client";
 import { redirect } from "next/navigation";
 
 export default function Login({
@@ -7,27 +8,24 @@ export default function Login({
 }: {
   searchParams: { message: string };
 }) {
-  /**
-   * update user name 
-   * @param {FormData} formData 
-   * @returns
-   */
+
+  const updateUserInfo = async (id: string | undefined, newData: object) => {
+    const response = await fetch('api/userSetting', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id,
+        newData
+      })
+    });
+  };
   const changeName = async (formData: FormData) => {
-    "use server";
-    try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      );
-      const user = await supabase.auth.api.getUserByCookie;
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-      const userName = formData.get('userName') as string;
-
-      const data = await supabase.from('profile').select('*').eq('user_id', user.data.user?.id);
-      return redirect("/login?" + data);
-    } catch {
-      return redirect('/login')
-    }
+    updateUserInfo(user?.id, {username: formData.get('userName')});
   };
 
   return (
