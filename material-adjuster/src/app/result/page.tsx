@@ -29,8 +29,8 @@ export default function Result({
                     <>
                         <div className='mt-2'>{item.gearName}</div>
                         <div className=' border'>
-                            {item.materiaList.map((n) => (
-                                <div>{n.statusType + '+' + n.statusValue}</div>
+                            {item.materiaList.map((n, index) => (
+                                <div key={index +1}>{n.statusType + '+' + n.statusValue}</div>
                             ))}
                         </div>
                     </>
