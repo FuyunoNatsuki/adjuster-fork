@@ -17,6 +17,8 @@ import { Loading } from "@/components/Loading";
 import { Accordion } from "@/components/Accordion";
 import { getGearMaterialCombination} from "./api/calculateMaterialCombination";
 import { EQUIPMENT_SLOT_LIST, EquipmentRawParam, EquipmentSlotList, JOB_LIST, JobName, getEquipmentParams, getFoodParam } from "./constant/equipmentConstant";
+import { useRouter } from 'next/navigation';
+import LZString from 'lz-string';
 
 export default function Home({
   searchParams
@@ -38,25 +40,27 @@ export default function Home({
     fingerL: null,
     fingerR: null
   };
+  const router = useRouter();
   const [cachedEquipmentList, setCachedEquipmentList] = useState({});
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startEtroTransition] = useTransition();
+  const [isSubmit, startSubmitTransition] = useTransition();
   const [selectedJob, setSelectedjob] = useState('');
   const [foodList, setFoodList] = useState([] as FoodRawParam[]);
   const [selectedFood, setSelectedFood] = useState(null);
   const [equipmentList, setEquipmentList] = useState([]);
-  const [selectedEquipmentlist, setSelectedEquipmentList] = useState(defaultEquipmentList);
+  const [selectedEquipmentlist, setSelectedEquipmentList] = useState(Object.assign({}, defaultEquipmentList));
   const speedParam = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     fetchCurrentJobEquipment(selectedJob);
-    startTransition(async () => {
+    startEtroTransition(async () => {
       const etroFoodList = await fetchFoodList();
       setFoodList(etroFoodList);
     });
   }, []);
 
   const fetchCurrentJobEquipment = (jobName: string) => {
-    startTransition(async () => {
+    startEtroTransition(async () => {
       if (Object.keys(cachedEquipmentList).includes(jobName)) {
         setEquipmentList(cachedEquipmentList[jobName]);
         return;
@@ -93,7 +97,7 @@ export default function Home({
   const onChangeJobSelect = useCallback((newValue: SingleValue<{ value: JobName }>) => {
     setSelectedjob(newValue?.value || 'PLD');
     fetchCurrentJobEquipment(newValue?.value || 'PLD');
-    setSelectedEquipmentList(defaultEquipmentList);
+    setSelectedEquipmentList(Object.assign({}, defaultEquipmentList));
   }, [searchParams]);
 
   const JobFormatOptionLabel = useCallback((option: {
@@ -122,7 +126,7 @@ export default function Home({
       <div className="flex">
         <Image
           className="w-10 h-10"
-          src={'https://etro.gg/s/icons' + options.value.iconPath}
+          src={options.value.iconPath ? 'https://etro.gg/s/icons' + options.value.iconPath : '/images/Dummy.png'}
           width={40}
           height={40}
           alt={options.value.name}
@@ -147,7 +151,7 @@ export default function Home({
   }) => (
     <div className="h-11 text-xs relative whitespace-nowrap flex">
       <Image
-        src={'https://etro.gg/s/icons' + option.iconPath}
+        src={option.iconPath ? 'https://etro.gg/s/icons' + option.iconPath : '/images/' + option.originValue.slotName + 'Dummy.png'}
         alt={option.alt}
         width={40}
         height={40}
@@ -190,6 +194,14 @@ export default function Home({
             originValue: n
           };
         })}
+        defaultValue={selectedEquipmentlist[option.gearName] ? {
+          value: selectedEquipmentlist[option.gearName].name,
+          label: 'IL:' + selectedEquipmentlist[option.gearName].itemLevel + ' ' + selectedEquipmentlist[option.gearName].name,
+            iconPath: selectedEquipmentlist[option.gearName].iconPath,
+            alt: selectedEquipmentlist[option.gearName].iconId,
+            gearName: option.gearName,
+            originValue: selectedEquipmentlist[option.gearName]
+        }: null}
         formatOptionLabel={EquipmentOptionLabel}
       >
       </Select>
@@ -210,53 +222,6 @@ export default function Home({
       </div>
     </div>
   );
-  /*
-    const onChangeSelectTribe = useCallback((
-      newValue: SingleValue<{
-        value: TribeData
-      }>) => {
-      setSelectedTribe(newValue?.value || TRIBE_DATA_LIST[0]);
-    }, []);
-
-  const SelectTribeLabel = useCallback((option: {
-    value: TribeData
-  }) => {
-    return (
-      <div className="text-black text-xs text-nowrap">
-        <div>{option.value.name}</div>
-        <div>{
-          'STR: ' + option.value.status.STR
-          + ' DEX: ' + option.value.status.DEX
-          + ' VIT: ' + option.value.status.VIT
-          + ' INT: ' + option.value.status.INT
-          + ' MND: ' + option.value.status.MND
-        }</div>
-      </div>
-    )
-  }, []);
-
-  const SelectTribeBox = useCallback(() => {
-    return (
-      <div>
-        <label className="text-md mr-2" htmlFor="select-tribe">
-          種族
-        </label>
-        <Select
-          className="bg-black w-60 inline-block text-left"
-          name="select-tribe"
-          onChange={onChangeSelectTribe}
-          options={TRIBE_DATA_LIST.map((item) => {
-            return {
-              value: item
-            };
-          })}
-          menuPlacement="top"
-          formatOptionLabel={SelectTribeLabel}
-        ></Select>
-      </div>
-    );
-  }, []);
-*/
 
   const SelectEquipmentSubMenu = useCallback(() => {
     return (
@@ -279,8 +244,8 @@ export default function Home({
     );
   }, [searchParams]);
 
-  const onClickSubmitEquipment = useCallback(() => {
-    startTransition(() => {
+  const onClickSubmitEquipment = () => {
+    startSubmitTransition(() => {
       const targetEquipmments = Object.values(selectedEquipmentlist).filter((item) => {
         return item;
       });
@@ -289,8 +254,14 @@ export default function Home({
         equipments: targetEquipmments,
         food: selectedFood
       });
+      if (sessionStorage.getItem('resultCombination')) {
+        sessionStorage.removeItem('resultCombination');
+      }
+      sessionStorage.setItem('resultCombination', LZString.compress(JSON.stringify(bestCombination[0])))
+      router.push('/result')
     });
-  }, [])
+  };
+
   return (
     <>
       <div className="bg-black text-white min-h-screen flex flex-col justify-start items-center mb-16 pb-6 mt-24 select-none">
@@ -343,12 +314,13 @@ export default function Home({
               <p className="mt-1">created by Akino Harusaki 2024.6 </p>
               <p className="mt-1">Thanks for <a className="text-yellow-400 hover:text-red-600" href="https://etro.gg/api/docs/">Etro</a></p>
             </div>
+            {isSubmit ? <Loading /> :(
             <button
               className="bg-green-500 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded absolute bottom-24 right-1/4 active:scale-95"
               onClick={onClickSubmitEquipment}
             >
-              送信
-            </button>
+              計算開始
+            </button>)}
           </div>
         </footer>
       </div>

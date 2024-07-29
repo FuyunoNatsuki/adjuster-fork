@@ -1,230 +1,14 @@
-"use server";
 import _ from "lodash";
-import { FoodRawParam } from "./fetchEtro";
 import {
   EquipmentRawParam,
   JobName,
   STATUS_IDS,
   getEquipmentParams,
+  FoodRawParam,
+  getFoodParam,
 } from "../constant/equipmentConstant";
+import { getExpectedDamageValue, getLevelSub } from "./calculateStatusValue";
 
-/** * Criticalの確立（5%〜）を返す */
-const getCriticalHitRate = ({
-  criticalParam,
-  criticalBuffs,
-  playerLevel,
-}: {
-  criticalParam: number;
-  criticalBuffs: number[];
-  playerLevel: number;
-}) => {
-  const criticalBuffRate =
-    Math.floor(
-      criticalBuffs.reduce((stack, current) => {
-        return stack + current;
-      }, 0)
-    ) * 1000;
-  return (
-    (Math.floor(
-      (200 * (criticalParam - getLevelSub(playerLevel))) /
-        getLevelDiv(playerLevel)
-    ) +
-      50 +
-      criticalBuffRate) /
-    1000
-  );
-};
-/** * Criticalのダメージ倍率（40%〜）を返す */
-const getCriticalHitStrength = ({
-  criticalParam,
-  playerLevel,
-}: {
-  criticalParam: number;
-  playerLevel: number;
-}) => {
-  return (
-    (Math.floor(
-      (200 * (criticalParam - getLevelSub(playerLevel))) /
-        getLevelDiv(playerLevel)
-    ) +
-      400) /
-    1000
-  );
-};
-/** * CRTのダメージ期待値を返す */
-const getExpectedCriticalValue = ({
-  criticalParam,
-  criticalBuffs,
-  playerLevel,
-}: {
-  criticalParam: number;
-  criticalBuffs: number[];
-  playerLevel: number;
-}) => {
-  return (
-    getCriticalHitRate({
-      criticalParam: criticalParam,
-      criticalBuffs: criticalBuffs,
-      playerLevel: playerLevel,
-    }) *
-      getCriticalHitStrength({
-        criticalParam: criticalParam,
-        playerLevel: playerLevel,
-      }) +
-    1
-  );
-};
-/** * DETのダメージ倍率を返す */
-const getDeterminationMultiplier = ({
-  determinationParam,
-  playerLevel,
-}: {
-  determinationParam: number;
-  playerLevel: number;
-}) => {
-  return (
-    (Math.floor(
-      (140 * (determinationParam - getLevelMain(playerLevel))) /
-        getLevelDiv(playerLevel)
-    ) +
-      1000) /
-    1000
-  );
-};
-/** * DHのダメージ期待値を返す */
-const getExpectedDirectHitValue = ({
-  directHitParam,
-  directHitBuffs,
-  playerLevel,
-}: {
-  directHitParam: number;
-  directHitBuffs: number[];
-  playerLevel: number;
-}) => {
-  return (
-    getDirectHitRate({
-      directHitParam: directHitParam,
-      directHitBuffs: directHitBuffs,
-      playerLevel: playerLevel,
-    }) *
-      0.25 +
-    1
-  );
-};
-/** * DHの確率を返す */
-const getDirectHitRate = ({
-  directHitParam,
-  directHitBuffs,
-  playerLevel,
-}: {
-  directHitParam: number;
-  directHitBuffs: number[];
-  playerLevel: number;
-}) => {
-  const directHitBuffRate =
-    Math.floor(
-      directHitBuffs.reduce((stack, current) => {
-        return stack + current;
-      }, 0)
-    ) * 1000;
-  return (
-    Math.floor(
-      (550 * (directHitParam - getLevelSub(playerLevel))) /
-        getLevelDiv(playerLevel) +
-        directHitBuffRate
-    ) / 1000
-  );
-};
-/** * GCDの値を返す */
-const getGcdSpeed = ({
-  speedParam,
-  playerLevel,
-  basicGcdValue,
-  speedBuffs,
-}: {
-  speedParam: number;
-  playerLevel: number;
-  basicGcdValue: number;
-  speedBuffs: number[];
-}) => {
-  const speedBuffValue = speedBuffs.reduce((stack, current) => {
-    return stack * current;
-  }, 1);
-  return (
-    Math.floor(
-      (basicGcdValue *
-        speedBuffValue *
-        (Math.ceil(
-          (130 * (getLevelSub(playerLevel) - speedParam)) /
-            getLevelDiv(playerLevel)
-        ) +
-          1000)) /
-        10
-    ) / 100
-  );
-};
-/** * Dotおよびオートアタックの倍率を返す */
-const getDotMultiplier = ({
-  speedParam,
-  playerLevel,
-}: {
-  speedParam: number;
-  playerLevel: number;
-}) => {
-  return (
-    (Math.floor(
-      (130 * (speedParam - getLevelSub(playerLevel))) / getLevelDiv(playerLevel)
-    ) +
-      1000) /
-    1000
-  );
-};
-/** * TENのダメージ倍率を返す */
-const getTenacityMultiplier = ({
-  tenacityParam,
-  playerLevel,
-}: {
-  tenacityParam: number;
-  playerLevel: number;
-}) => {
-  return (
-    (Math.floor(
-      (112 * (tenacityParam - getLevelSub(playerLevel))) /
-        getLevelDiv(playerLevel)
-    ) +
-      1000) /
-    1000
-  );
-};
-/** * 総合のダメージ期待値倍率を返す */
-const getExpectedDamageValue = ({
-  param,
-  playerLevel,
-  buffs,
-}: {
-  param: {
-    CRT?: number;
-    DET?: number;
-    DH?: number;
-    TEN?: number;
-  };
-  playerLevel: number;
-  buffs: {
-    CRT?: number[];
-    DET?: number[];
-    DH?: number[];
-  };
-}) => {};
-/** * FIXME: 黄金が来たらLv100のパラメータを適用して正規のステータスを返す */
-const getLevelMain = (level: number) => {
-  return 440;
-};
-const getLevelSub = (level: number) => {
-  return 420;
-};
-const getLevelDiv = (level: number) => {
-  return 2780;
-};
 // 装備のサブステータス情報
 type GearSubStatus = {
   statusType: StatusType;
@@ -243,7 +27,7 @@ export type GearItemInfo = {
   name: string;
   canAdvancedmelding: boolean;
 };
-type StatusType = "DET" | "DH" | "CRT" | "SS" | "TEN";
+type StatusType = "DET" | "DH" | "CRT" | "SKS" | "SPS" | "TEN";
 type MaterialType =
   | { materialSize: 1; materialValue: 54 }
   | { materialSize: 2; materialValue: 18 };
@@ -253,100 +37,116 @@ const TANK_SUB_STATUS: StatusType[] = COMMON_SUB_STATUS.concat("TEN");
 type StatusCombination = StatusType[];
 type GearCombinationListArray = GearCombinationList;
 const generateCombinations = (
-  arrays: StatusCombination[],
-  index = 0,
-  current: StatusCombination = [],
-  result: StatusCombination[] = []
-) => {
-  if (index === arrays.length) {
-    result.push([...current]);
-    return result;
+  arrays: StatusCombination[]
+): StatusCombination[] => {
+  const result: StatusCombination[] = [];
+  const stack: { index: number; current: StatusCombination }[] = [];
+
+  stack.push({ index: 0, current: [] });
+
+  while (stack.length > 0) {
+    const { index, current } = stack.pop()!;
+
+    if (index === arrays.length) {
+      result.push([...current]);
+    } else {
+      for (const element of arrays[index]) {
+        stack.push({ index: index + 1, current: [...current, element] });
+      }
+    }
   }
-  for (const element of arrays[index]) {
-    current[index] = element;
-    generateCombinations(arrays, index + 1, current, result);
-  }
+
   return result;
 };
 
 const generateGearCombinations = (
-  arrays: GearCombinationListArray[],
-  index = 0,
-  current: GearCombinationListArray = [],
-  result: GearCombinationListArray[] = []
+  stackedGearList: GearCombinationList[],
+  currentGearList: GearCombinationList,
+  isPhysical: boolean
 ) => {
-  if (index === arrays.length) {
-    const defaultValue = {
-      CRT: 0,
-      DET: 0,
-      DH: 0,
-      TEN: 0,
-      SS: 0,
-    };
-    const currentSum = current.reduce((stack, item) => {
-      const additionalStatus = Array.isArray(item)
+  var resultArray: GearCombinationList[] = [];
+  var cachedStatusCombination: {
+    CRT: number;
+    DET: number;
+    DH: number;
+    TEN: number;
+    SKS?: number;
+    SPS?: number;
+  }[] = [];
+  var duplicatedCombination: {
+    CRT: number;
+    DET: number;
+    DH: number;
+    TEN: number;
+    SKS?: number;
+    SPS?: number;
+  }[] = [];
+  const speedStatus = isPhysical ? "SKS" : "SPS";
+  const defaultStatus = isPhysical
+    ? {
+        CRT: 0,
+        DET: 0,
+        DH: 0,
+        TEN: 0,
+        SKS: 0,
+      }
+    : {
+        CRT: 0,
+        DET: 0,
+        DH: 0,
+        TEN: 0,
+        SPS: 0,
+      };
+
+  for (let i = 0; i < stackedGearList.length; i++) {
+    var stackedStatusSum = stackedGearList[i].reduce((acc, item) => {
+      acc.CRT += item.gearStatus.CRT.value || 0;
+      acc.DET += item.gearStatus.DET.value || 0;
+      acc.DH += item.gearStatus.DH.value || 0;
+      acc.TEN += item.gearStatus.TEN.value || 0;
+      acc[speedStatus] += item.gearStatus[speedStatus].value || 0;
+      return acc;
+    }, Object.assign({}, defaultStatus));
+    for (let j = 0; j < currentGearList.length; j++) {
+      var currentStatusSum = isPhysical
         ? {
-            CRT: item.reduce((s, n) => {
-              return s + n.gearStatus.CRT.value;
-            }, 0),
-            DET: item.reduce((s, n) => {
-              return s + n.gearStatus.DET.value;
-            }, 0),
-            DH: item.reduce((s, n) => {
-              return s + n.gearStatus.DH.value;
-            }, 0),
-            TEN: item.reduce((s, n) => {
-              return s + n.gearStatus.TEN.value;
-            }, 0),
-            SS: item.reduce((s, n) => {
-              return s + n.gearStatus.SS.value;
-            }, 0),
+            CRT: stackedStatusSum.CRT + currentGearList[j].gearStatus.CRT.value,
+            DET: stackedStatusSum.DET + currentGearList[j].gearStatus.DET.value,
+            DH: stackedStatusSum.DH + currentGearList[j].gearStatus.DH.value,
+            TEN: stackedStatusSum.TEN + currentGearList[j].gearStatus.TEN.value,
+            SKS: stackedStatusSum.SKS + currentGearList[j].gearStatus.SKS.value,
           }
         : {
-            CRT: item.gearStatus.CRT.value,
-            DET: item.gearStatus.DET.value,
-            DH: item.gearStatus.DH.value,
-            TEN: item.gearStatus.TEN.value,
-            SS: item.gearStatus.SS.value,
+            CRT: stackedStatusSum.CRT + currentGearList[j].gearStatus.CRT.value,
+            DET: stackedStatusSum.DET + currentGearList[j].gearStatus.DET.value,
+            DH: stackedStatusSum.DH + currentGearList[j].gearStatus.DH.value,
+            TEN: stackedStatusSum.TEN + currentGearList[j].gearStatus.TEN.value,
+            SPS: stackedStatusSum.SPS + currentGearList[j].gearStatus.SPS.value,
           };
-      return {
-        CRT: stack.CRT + additionalStatus.CRT,
-        DET: stack.DET + additionalStatus.DET,
-        DH: stack.DH + additionalStatus.DH,
-        TEN: stack.TEN + additionalStatus.TEN,
-        SS: stack.SS + additionalStatus.SS,
-      };
-    }, defaultValue);
-    const isAlreadyExist = result.some((n) => {
-      const resultSum = n.flat().reduce((stack, item) => {
-        return {
-          CRT: stack.CRT + item.gearStatus.CRT.value,
-          DET: stack.DET + item.gearStatus.DET.value,
-          DH: stack.DH + item.gearStatus.DH.value,
-          TEN: stack.TEN + item.gearStatus.TEN.value,
-          SS: stack.SS + item.gearStatus.SS.value,
-        };
-      }, defaultValue);
-      return _.isEqual(currentSum, resultSum);
-    });
-    if (!isAlreadyExist) {
-      result.push([...current]);
+      const cachedNumber =
+        currentStatusSum.CRT * 10000 +
+        currentStatusSum.DET * 1000 +
+        currentStatusSum.DH * 100 +
+        currentStatusSum.TEN * 10 +
+        (currentStatusSum.SKS || currentStatusSum.SPS || 0);
+      const isAlreadyExist = cachedStatusCombination.includes(cachedNumber);
+      if (!isAlreadyExist) {
+        resultArray.push(stackedGearList[i].concat(currentGearList[j]));
+        cachedStatusCombination.push(cachedNumber);
+      }
     }
-    return result;
   }
-  for (const element of arrays[index]) {
-    current[index] = element;
-    generateGearCombinations(arrays, index + 1, current, result);
-  }
-  return result;
+  return resultArray;
 };
 
 const getGearMaterialCombinationList = ({
   roleName,
   baseGear,
+  isPhysical,
 }: {
   roleName: "TANK" | "OTHER";
   baseGear: GearItemInfo;
+  isPhysical: boolean;
 }) => {
   var currentStatus = {};
   Object.keys(STATUS_IDS).forEach((item) => {
@@ -355,15 +155,10 @@ const getGearMaterialCombinationList = ({
       maxValue: 999,
     };
   });
-  const speedStatus = baseGear.status.subStatusList.find((n) => {
-    return n.statusType === "SKS" || n.statusType === "SPS";
-  });
-  currentStatus["SS"] = {
-    value: speedStatus ? speedStatus.statusValue : 0,
-    maxValue: speedStatus ? speedStatus.statusValueMax : 999,
-  };
   const targetStatusList =
     roleName === "TANK" ? TANK_SUB_STATUS : COMMON_SUB_STATUS;
+  const speedStatusName = isPhysical ? "SKS" : "SPS";
+  //targetStatusList.push(speedStatusName);
   baseGear.status.subStatusList.forEach((item) => {
     currentStatus[item.statusType].value = item.statusValue;
     currentStatus[item.statusType].maxValue = item.statusValueMax;
@@ -381,72 +176,34 @@ const getGearMaterialCombinationList = ({
       );
     }
   }
-  var criticalSlotList = [];
-  materialSlotList.some((slot) => {
-    const criticalSum = criticalSlotList.reduce((stack, n) => {
-      return stack + n.statusValue;
-    }, 0);
+
+  var materialCombinationList = [];
+  var criticalSum = 0;
+  for (let i = 0; i < materialSlotList.length; i++) {
     if (
-      currentStatus.CRT.value + criticalSum + slot.materialValue >=
+      currentStatus.CRT.value +
+        criticalSum +
+        materialSlotList[i].materialValue >
       currentStatus.CRT.maxValue
     ) {
-      return true;
-    }
-    criticalSlotList.push({
-      statusType: "CRT",
-      statusValue: slot.materialValue,
-    });
-    return false;
-  });
-  var materialCombinationList = [];
-  for (let i = criticalSlotList.length; i < materialSlotList.length; i++) {
-    if (materialSlotList[i].materialSize === 1) {
-      materialCombinationList.push(
-        targetStatusList.filter((n) => {
-          return !["SS", "TEN"].includes(n);
-        })
-      );
-    } else {
       materialCombinationList.push(targetStatusList);
+    } else {
+      materialCombinationList.push(["CRT"]);
+      criticalSum += materialSlotList[i].materialValue;
     }
   }
   var cachedMaterialParam = [];
-  const existCriticalSum = criticalSlotList.reduce((stack, n) => {
-    return stack + n.statusValue;
-  }, 0);
-  if (!materialCombinationList.length) {
-    return [
-      {
-        gearId: baseGear.itemId,
-        gearName: baseGear.name,
-        gearStatus: Object.assign({}, currentStatus, {
-          CRT: {
-            value: Math.min(
-              currentStatus.CRT.value + existCriticalSum,
-              currentStatus.CRT.maxValue || 999
-            ),
-          },
-        }),
-        materiaList: criticalSlotList,
-      },
-    ];
-  }
   return generateCombinations(materialCombinationList)
     .filter((list) => {
       const currentGearStatus = Object.assign({}, currentStatus);
       return !list.some((item, index) => {
-        const additionalValue = item === "CRT" ? existCriticalSum : 0;
-        if (
-          currentGearStatus[item].value + additionalValue >=
-          currentGearStatus[item].maxValue
-        ) {
+        if (currentGearStatus[item].value >= currentGearStatus[item].maxValue) {
           return true;
         } else {
           currentGearStatus[item] = Object.assign({}, currentGearStatus[item], {
             value:
               currentGearStatus[item].value +
-              materialSlotList[index].materialValue +
-              additionalValue,
+              materialSlotList[index].materialValue,
           });
           return false;
         }
@@ -457,22 +214,18 @@ const getGearMaterialCombinationList = ({
         gearId: baseGear.itemId,
         gearName: baseGear.name,
         gearStatus: list.reduce((before, current, index) => {
-          const additionalValue = current === "CRT" ? existCriticalSum : 0;
           before[current] = {
             value: Math.min(
-              before[current].value +
-                materialSlotList[index].materialValue +
-                additionalValue,
-              before[current].maxValue || 999
+              before[current].value + materialSlotList[index].materialValue,
+              before[current].maxValue
             ),
+            maxValue: before[current].maxValue,
           };
           return before;
         }, Object.assign({}, currentStatus)),
-        materiaList: criticalSlotList.concat(
-          materialSlotList.map((item, index) => {
-            return { statusType: list[index], statusValue: item.materialValue };
-          })
-        ),
+        materiaList: materialSlotList.map((item, index) => {
+          return { statusType: list[index], statusValue: item.materialValue };
+        }),
       };
     })
     .filter((gearList) => {
@@ -512,7 +265,7 @@ const subStatusParser = (equipment: EquipmentRawParam) => {
       };
     });
 };
-type GearCombinationList = {
+export type GearCombinationList = {
   gearId: number;
   gearStatus: {};
   materiaList: {
@@ -520,7 +273,7 @@ type GearCombinationList = {
     statusValue: 54 | 18;
   }[];
 }[];
-export const getGearMaterialCombination = async ({
+export const getGearMaterialCombination = ({
   jobName,
   equipments,
   food,
@@ -529,9 +282,26 @@ export const getGearMaterialCombination = async ({
   equipments: EquipmentRawParam[];
   food: FoodRawParam | null;
 }) => {
+  const isTank = ["GNB", "PLD", "DRK", "WAR"].includes(jobName);
+  const isPhysical = [
+    // TANK
+    "PLD",
+    "WAR",
+    "DRK",
+    "GNB",
+    // Melee DPS
+    "MNK",
+    "DRG",
+    "SAM",
+    "RPR",
+    "VPR",
+    // Physical Ranged DPS
+    "NIN",
+    "BRD",
+    "MCH",
+    "DNC",
+  ].includes(jobName);
   const materiaCombinationArray = equipments.reduce((stack, current, index) => {
-    const isTank = ["GNB", "PLD", "DRK", "WAR"].includes(jobName);
-
     const equipmentStatus = getEquipmentParams(current);
     var startTime = performance.now();
     const currentCombination = getGearMaterialCombinationList({
@@ -549,34 +319,106 @@ export const getGearMaterialCombination = async ({
         slotNum: +current.materiaSlotCount,
         canAdvancedmelding: current.advancedMelding,
       },
+      isPhysical: isPhysical,
     });
 
     var endTime = performance.now();
-    console.log(
-      "[Generate Combination" + (index + 1) + "] " + (endTime - startTime)
-    );
     if (index === 0) {
-      return currentCombination;
-    }
-    if (index < 2) {
-      return generateCombinations([stack, currentCombination]);
+      return currentCombination.map((item) => {
+        return [item];
+      });
     }
     startTime = performance.now();
 
-    const resultCombination = generateGearCombinations([
+    const resultCombination = generateGearCombinations(
       stack,
       currentCombination,
-    ]).map((item) => {
-      return item[0].concat(item[1]);
-    });
-    endTime = performance.now();
-    console.log(
-      "[Multiple(" +
-        resultCombination.length +
-        ") Combination Filtering] " +
-        (endTime - startTime)
+      isPhysical
     );
+    endTime = performance.now();
     return resultCombination;
   }, []);
+  const bestMaterialCombination = materiaCombinationArray.sort((a, b) => {
+    const aStatus = getGearCombinationStatus({
+      gearArray: a,
+      food: food as FoodRawParam,
+      isPhysical: isPhysical,
+    });
+    const bStatus = getGearCombinationStatus({
+      gearArray: b,
+      food: food as FoodRawParam,
+      isPhysical: isPhysical,
+    });
+    return (
+      getExpectedDamageValue({
+        param: bStatus,
+        playerLevel: 100,
+        buffs: {},
+      }) -
+      getExpectedDamageValue({
+        param: aStatus,
+        playerLevel: 100,
+        buffs: {},
+      })
+    );
+  })[0];
   return materiaCombinationArray;
+};
+
+const getGearCombinationStatus = ({
+  gearArray,
+  food,
+  isPhysical,
+}: {
+  gearArray: {
+    gearId: number;
+    gearName: string;
+    gearStatus: {
+      CRT: number;
+      DET: number;
+      DH: number;
+      TEN: number;
+      SKS: number;
+      SPS: number;
+    };
+    materiaList: {
+      statusType: StatusType;
+      statusValue: 54 | 18;
+    }[];
+  }[];
+  food: FoodRawParam;
+  isPhysical: boolean;
+}) => {
+  const speedStatus = isPhysical ? "SKS" : "SPS";
+  const defaultStatus = isPhysical
+    ? {
+        CRT: getLevelSub(100),
+        DET: getLevelSub(100),
+        DH: getLevelSub(100),
+        TEN: getLevelSub(100),
+        SKS: getLevelSub(100),
+      }
+    : {
+        CRT: getLevelSub(100),
+        DET: getLevelSub(100),
+        DH: getLevelSub(100),
+        TEN: getLevelSub(100),
+        SPS: getLevelSub(100),
+      };
+  var statusSum = gearArray.reduce((acc, item) => {
+    acc.CRT += item.gearStatus.CRT.value || 0;
+    acc.DET += item.gearStatus.DET.value || 0;
+    acc.DH += item.gearStatus.DH.value || 0;
+    acc.TEN += item.gearStatus.TEN.value || 0;
+    acc[speedStatus] += item.gearStatus[speedStatus].value || 0;
+    return acc;
+  }, Object.assign({}, defaultStatus));
+
+  getFoodParam(food).forEach((item) => {
+    statusSum[item.paramType] += Math.min(
+      statusSum[item.paramType] * item.paramMultiplier,
+      item.paramMaxValue
+    );
+  });
+  return statusSum;
 };

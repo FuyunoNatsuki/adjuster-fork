@@ -19,10 +19,12 @@ export type JobName =
   | "BRD"
   | "MCH"
   | "DNC"
+  | "VPR"
   // Magical Ranged DPS
   | "BLM"
   | "SMN"
-  | "RDM";
+  | "RDM"
+  | "PCT";
 export const JOB_LIST: JobName[] = [
   // TANK
   "PLD",
@@ -41,6 +43,7 @@ export const JOB_LIST: JobName[] = [
   "RPR",
   // Physical Ranged DPS
   "NIN",
+  "VPR",
   "BRD",
   "MCH",
   "DNC",
@@ -48,6 +51,7 @@ export const JOB_LIST: JobName[] = [
   "BLM",
   "SMN",
   "RDM",
+  "PCT",
 ];
 export type EquipmentSlotList =
   | "weapon"
