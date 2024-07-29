@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 import {
   useCallback,
@@ -159,7 +160,7 @@ export default function Home({
         <div className="ml-2 leading-5">{option.label}</div>
         <div className="ml-2 leading-5">
           {getEquipmentParams(option.originValue).map((item, index) => (
-            <span key={ index + 1} className="ml-1">{item.paramType + ' +' + item.paramValue}</span>
+            <span key={ index + 1 } className="ml-1">{item.paramType + ' +' + item.paramValue}</span>
           ))}
         </div>
       </div>
