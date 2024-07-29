@@ -55,7 +55,7 @@ export default function Home({
     fetchCurrentJobEquipment(selectedJob);
     startEtroTransition(async () => {
       const etroFoodList = await fetchFoodList();
-      setFoodList(etroFoodList);
+      setFoodList(etroFoodList || []);
     });
   }, []);
 
