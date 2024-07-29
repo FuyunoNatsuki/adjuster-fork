@@ -133,8 +133,8 @@ export default function Home({
         <div>
         <div className="ml-2 leading-5 text-xs">{options.value.name}</div>
         <div className="ml-2 leading-5 text-xs">
-          {foodParam.map((item) => (
-            <div>{item.paramType + ' +' + item.paramMultiplier + '%(max '+item.paramMaxValue+')'}</div>
+          {foodParam.map((item, index) => (
+            <div key={index+1}>{item.paramType + ' +' + item.paramMultiplier + '%(max '+item.paramMaxValue+')'}</div>
           ))}
         </div>
       </div>
@@ -158,8 +158,8 @@ export default function Home({
       <div>
         <div className="ml-2 leading-5">{option.label}</div>
         <div className="ml-2 leading-5">
-          {getEquipmentParams(option.originValue).map((item) => (
-            <span className="ml-1">{item.paramType + ' +' + item.paramValue}</span>
+          {getEquipmentParams(option.originValue).map((item, index) => (
+            <span key={ index + 1} className="ml-1">{item.paramType + ' +' + item.paramValue}</span>
           ))}
         </div>
       </div>
@@ -302,13 +302,6 @@ export default function Home({
         </main>
         <footer className="fixed bottom-0 h-16 bg-black w-full text-center">
           <div className="relative">
-            <Accordion
-              parentClassName="absolute bottom-16 w-full"
-              childClassName="absolute w-full bottom-6"
-              titleClassName="bg-blue-400"
-              title="追加オプション"
-              children={<SelectEquipmentSubMenu />}
-            />
             <div className="mt-3">
               <p className="mt-1">created by Akino Harusaki 2024.6 </p>
               <p className="mt-1">Thanks for <a className="text-yellow-400 hover:text-red-600" href="https://etro.gg/api/docs/">Etro</a></p>
