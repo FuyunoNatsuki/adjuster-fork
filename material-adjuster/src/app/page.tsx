@@ -8,7 +8,6 @@ import {
 } from "react";
 import {
   getCurrentJobEquipmentList,
-  FoodRawParam,
   fetchFoodList
 } from "./api/fetchEtro";
 import Image from "next/image";
@@ -16,7 +15,7 @@ import Select, { SingleValue } from "react-select";
 import { Loading } from "@/components/Loading";
 import { Accordion } from "@/components/Accordion";
 import { getGearMaterialCombination} from "./api/calculateMaterialCombination";
-import { EQUIPMENT_SLOT_LIST, EquipmentRawParam, EquipmentSlotList, JOB_LIST, JobName, getEquipmentParams, getFoodParam } from "./constant/equipmentConstant";
+import { EQUIPMENT_SLOT_LIST, EquipmentRawParam, EquipmentSlotList, FoodRawParam, JOB_LIST, JobName, getEquipmentParams, getFoodParam } from "./constant/equipmentConstant";
 import { useRouter } from 'next/navigation';
 import LZString from 'lz-string';
 
